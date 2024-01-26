@@ -4,7 +4,7 @@ pub effect yield<a>
 pub fun empty() : yield<t> ()
   ()
 
-pub fun to-list(it : () -> yield<a> ()) : list<a>
+pub fun list(it : () -> <yield<a>> ()) : list<a>
   with unsafe-no-div()
   var result := Nil
   with fun yield(elem)
@@ -30,11 +30,10 @@ pub fun test-yield() : div list<int>
     yield(n3)
     fib-yield(n2, n3)
     
-  to-list
+  list
     take(100)
       fib-yield(1,1)
 
-    
 
 pub fun foreach(it : () -> <yield<a>|e> (), do : a -> e ()) : e ()
   with ctl yield(elem)
@@ -50,18 +49,24 @@ pub fun to-list2(it : () -> yield<a> ()) : list<a>
   reverse(result)
 
 type iter<a,e>
-  Iter(cont : () -> e maybe<(a, iter<a,e>)>)
+  Iter(cont : () -> e maybe<(a,iter<a,e>)>)
 
-fun next(it : iter<a,e>) : e maybe<(a, iter<a,e>)>
+fun next(it : iter<a,e>) : e maybe<(a,iter<a,e>)>
   (it.cont)()
-
-fun iter(g : () -> <yield<a>|e> ()) : iter<a,e>
-  Iter({
-    handle g
-      return(x) Nothing
-      raw ctl yield(b)
-        Just((b, Iter(fn() rcontext.resume(()))))
-  })
 
 pub fun is-empty(it : iter<a,e>) : e bool
   it.next.is-nothing
+  
+pub fun list(it : iter<a,e>) : e list<a>
+  match it.next
+    Nothing -> Nil
+    Just((elem, rest)) -> Cons(elem, rest.list)
+
+pub fun iter(g : () -> <yield<a>|e> ()) : iter<a,e>
+  Iter({
+    handle g
+      return(_) Nothing
+      ctl yield(a)
+        Just((a, Iter(fn() resume(()))))
+  })
+

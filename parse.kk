@@ -1,4 +1,5 @@
-import yield
+import iter
+import util
 
 
 // Stream of tokens to be parsed.
@@ -6,20 +7,21 @@ import yield
 // can be stored and will always yield the same tokens when called.
 pub alias input<t> = iter<t,<>>
 
-pub alias parser<t,a> = () -> <parse<t>> a
+pub alias parser<t,a,e> = () -> <parse<t>|e> a
+pub alias parse<t> = <div,ndparse<t>>
 
 pub type parse-result<t,a> 
   ParseOk(result: a, rest : input<t>)
   ParseError(msg : string, rest : input<t>)
 
-pub effect parse<t>
+pub effect ndparse<t>
   fun satisfy(pred : input<t> -> total maybe<(a,input<t>)>) : maybe<a>
   ctl fail(msg : string) : a
   ctl pick() : bool
   fun get-input() : input<t>
   fun set-input(input : input<t>) : ()
   
-pub fun parse(input0 : input<t>, p : parser<t,a>) : div parse-result<t,a> 
+pub fun parse(input0 : input<t>, p : parser<t,a,e>) : <div|e> parse-result<t,a> 
   var input := input0
   handle p 
     return(x)
@@ -51,22 +53,33 @@ pub fun parse(input0 : input<t>, p : parser<t,a>) : div parse-result<t,a>
             ParseOk(x2,rest2) -> ParseOk(x2,rest2) 
             _err2 -> err1  // todo: merge or pick closest?
 
-pub fun many(p : parser<t,a>) : <div,parse<t>> list<a>
-  val (acc, rest) = many-rec(p, get-input(), [])
+pub fun many(p : parser<t,a,e>) : <parse<t>|e> list<a>
+  val input = get-input()
+  val (acc, rest) = mask<ndparse>
+    many-rec(p, input, [])
   set-input(rest)
   acc.reverse
 
-fun many-rec(p : parser<t,a>, input : input<t>, acc : list<a>) : div (list<a>, input<t>)
+fun many-rec(p : parser<t,a,e>, input : input<t>, acc : list<a>) : <div|e> (list<a>, input<t>)
   match parse(input, p)
     ParseOk(x, rest) -> many-rec(p, rest, Cons(x, acc))
     ParseError(_, _) -> (acc, input)
-
-fun tokenize(s : sslice) : yield<char> ()
-  s.foreach fn(c)
-    yield(c)
     
+pub fun many1(p : parser<t,a,e>) : <parse<t>|e> list<a>
+  Cons(p(), many(p))
 
-// ---------------------------- COPIED FROM STD ------------------------------------
+// pub fun many(p : parser<t,a,e>) : <parse<t>|e> list<a>
+//   val (acc, rest) = many-rec(p, get-input(), [])
+//   set-input(rest)
+//   acc.reverse
+
+// fun many-rec(p : parser<t,a,e>, input : input<t>, acc : list<a>) : <parse<t>|e> (list<a>, input<t>)
+//   match parse(input, p)
+//     ParseOk(x, rest) -> many-rec(p, rest, Cons(x, acc))
+//     ParseError(_, _) -> (acc, input)
+
+
+// ---------------------------- FROM STD ------------------------------------
 
 
 pub fun maybe(perr : parse-result<t,a>) : maybe<a> 
@@ -77,39 +90,39 @@ pub fun either(perr : parse-result<t,a>) : either<string,a>
     ParseOk(x,_) -> Right(x)
     ParseError(msg,_) -> Left(msg)
   
-pub fun eof() : parse<t> () 
+pub fun eof() : <parse<t>|e> () 
   match satisfy(fn(s) if s.is-empty then Just(((),s)) else Nothing) 
     Nothing -> fail("expecting end-of-input")
     Just    -> ()
   
-pub fun parse-eof(input : input<t>, p : parser<t,a>) : div parse-result<t,a> 
+pub fun parse-to-eof(input : input<t>, p : parser<t,a,e>) : <div|e> parse-result<t,a> 
   parse(input)
     val result = p()
     eof()
     result
 
-pub fun (||)(p1 : parser<t,a>, p2 : parser<t,a>) : parse<t> a 
+pub fun (||)(p1 : parser<t,a,e>, p2 : parser<t,a,e>) : <parse<t>|e> a 
   if pick() then p1() else p2()
 
-pub fun optional(default : a, p : parser<t,a>) : parse<t> a 
+pub fun optional(default : a, p : parser<t,a,e>) : <parse<t>|e> a 
   p || (fn() default)
 
-pub fun choose(ps : list<parser<t,a>>) : parse<t> a 
+pub fun choose(ps : list<parser<t,a,e>>) : <parse<t>|e> a 
   match ps
     Nil         -> fail("no further alternatives")
     Cons(p,Nil) -> p()
     Cons(p,pp)  -> if pick() then p() else choose(pp)
   
-pub fun satisfy-fail(msg : string, pred : input<t> -> maybe<(a,input<t>)>) : parse<t> a 
+pub fun satisfy-fail(msg : string, pred : input<t> -> maybe<(a,input<t>)>) : <parse<t>|e> a 
   match satisfy(pred)
     Nothing -> fail(msg)
     Just(x) -> x
   
-pub fun token-is(msg : string, pred : t -> bool) : parse<t> t
+pub fun token-is(msg : string, pred : t -> bool) : <parse<t>|e> t
   satisfy-fail(msg) fn(input)
     match input.next
       Nothing -> Nothing
-      result as Just((t, _)) -> if pred(t) then result else Nothing
+      Just((t, rest)) -> if pred(t) then Just((t,rest)) else Nothing
   
 fun next-while0(input : input<t>, pred : t -> bool, acc : list<t>) : (list<t>,input<t>) 
   match input.next
@@ -117,7 +130,7 @@ fun next-while0(input : input<t>, pred : t -> bool, acc : list<t>) : (list<t>,in
     _ -> (acc.reverse, input)
   
 
-pub fun tokens-are(msg : string, pred : t -> bool) : parse<t> list<t> 
+pub fun tokens-are(msg : string, pred : t -> bool) : <parse<t>|e> list<t> 
   satisfy-fail(msg) fn(input) 
     match input.next-while0(pred,[]) 
       ([],_)    -> Nothing
@@ -194,3 +207,78 @@ pub fun one-of-or(chars : string, default : char) : parse<char> char
 pub fun hex-digits() : parse<char> string 
   tokens-are("digit", is-hex-digit).string
 
+  
+// ---------------------- TOKENIZATION ----------------------------
+
+fun tokenize(s : sslice) : yield<char> ()
+  s.foreach fn(c)
+    yield(c)
+    
+fun tokenize(s : string) : yield<char> ()
+  s.slice.tokenize
+
+fun tokenize(l : list<a>) : yield<a> ()
+  l.foreach fn(t)
+    yield(t)
+    
+// Necessary because otherwise the effect variable is interpreted differently or something
+pub fun is-empty'(it : iter<a,<>>) : bool
+  it.next.is-nothing
+
+fun tokenize(p : parser<t,a,<>>, input : input<t>, show : a -> string) : <div,exn,yield<a>> ()
+  match parse(input, p)
+    ParseOk(a, rest) ->
+      // TODO: assert advance
+      debug(show(a))
+      yield(a)
+      tokenize(p, rest, show)
+    ParseError(msg, rest) -> 
+      if !rest.is-empty' then
+        throw("Error during tokenization: " ++ msg)
+
+
+// ---------------------- EXAMPLES ----------------------------
+
+pub value type dsv-token
+  Value(s : string)
+  Sep
+  Newline
+
+pub fun show(t : dsv-token) : string
+  match t
+    Value(s) -> "val: " ++ s
+    Sep -> " | "
+    Newline -> " lf\n"
+
+pub fun show(dsv : list<dsv-token>) : string
+  dsv.map(show).join()
+
+fun parse-tsv-value() : parse<char> dsv-token
+  val chars = many1({ none-of("\t\r\n") })
+  Value(chars.string)
+
+fun parse-tsv-sep() : parse<char> dsv-token
+  val _ = char('\t')
+  Sep
+
+fun parse-newline() : parse<char> dsv-token
+  val _ = char('\n')
+  Newline
+
+fun parse-tsv-token() : parse<char> dsv-token
+  parse-tsv-value || ({parse-tsv-sep || parse-newline})
+
+pub fun tokenize-tsv(input : input<char>) : <div,exn,yield<dsv-token>> ()
+  tokenize(parse-tsv-token, input, show)
+  
+pub fun main()
+  val input = iter({"1".tokenize})
+  
+  // println("Input:")
+  // val s = input.list.show
+  // val l = input.list
+  // println(l.show)
+  
+  val result = iter(fn() tokenize-tsv(input))
+  println("Output:")
+  println(result.list.show)
