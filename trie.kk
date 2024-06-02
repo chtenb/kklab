@@ -3,7 +3,7 @@ import std/core/unsafe
 import util
 import vslice
 
-alias intstring = vslice<int>
+alias slice = vslice<int>
 
 ref type simple-trie<a>
   SimpleLookupLeaf(value : a)
@@ -14,7 +14,7 @@ fun get-root-value(lookup : simple-trie<a>) : maybe<a>
     SimpleLookupLeaf(x) -> Just(x)
     SimpleLookupNode(mx, _) -> mx
 
-fun simple/get-value(lookup : simple-trie<a>, p : intstring) : exn maybe<a>
+fun simple/get-value(lookup : simple-trie<a>, p : slice) : exn maybe<a>
   match p.next
     Nothing -> lookup.get-root-value // Pattern exhausted, return current root value
     Just((k, ks)) ->
@@ -22,13 +22,27 @@ fun simple/get-value(lookup : simple-trie<a>, p : intstring) : exn maybe<a>
         SimpleLookupLeaf(_) -> Nothing // Reached bottom of tree before exhausting the pattern
         SimpleLookupNode(_, children) -> match children[k]
           Nothing -> Nothing
-          Just(child) -> get-value(pretend-decreasing(child), ks)
+          Just(child) -> get-value(child, pretend-decreasing(ks))
+
+fun simple/get-value'(lookup : simple-trie<a>, p : slice) : exn maybe<a>
+  loop(p, get-value-rec, lookup, ())
+
+fun simple/get-value-rec(p : maybe<(int,slice)>, lookup : simple-trie<a>, _ : ()) : exn tailrec<slice,simple-trie<a>,maybe<a>>
+  match p
+    Nothing -> Stop(lookup.get-root-value) // Pattern exhausted, return current root value
+    Just((k, ks)) ->
+      match lookup
+        SimpleLookupLeaf(_) -> Stop(Nothing) // Reached bottom of tree before exhausting the pattern
+        SimpleLookupNode(_, children) -> match children[k]
+          Nothing -> Stop(Nothing)
+          Just(child) -> Loop(ks, child)
+
 
 
 ref type mut-trie<h,a>
   MutLookupNode(value : ref<h,maybe<a>>, children : vector<ref<h, maybe<mut-trie<h,a>>>>)
 
-fun mut/get-value(lookup : mut-trie<h,a>, p : intstring) : <read<h>,div,exn> maybe<a>
+fun mut/get-value(lookup : mut-trie<h,a>, p : slice) : <read<h>,div,exn> maybe<a>
   match p.next
     Nothing -> match lookup
       MutLookupNode(value, _) -> !value
@@ -38,7 +52,7 @@ fun mut/get-value(lookup : mut-trie<h,a>, p : intstring) : <read<h>,div,exn> may
           Nothing -> Nothing
           Just(child) -> get-value(child, ks)
 
-fun insert(lookup : mut-trie<h, a>, p : intstring, value : a) : <st<h>,exn,div> ()
+fun insert(lookup : mut-trie<h, a>, p : slice, value : a) : <st<h>,exn,div> ()
   match p.next
     Nothing -> match lookup
       MutLookupNode(r, _) -> r := Just(value)
@@ -51,7 +65,7 @@ fun insert(lookup : mut-trie<h, a>, p : intstring, value : a) : <st<h>,exn,div> 
             Nothing -> childref := Just(build-mut-trie-path(children.length, ks, value))
 
 // Build a new trie with a path to a given value
-fun build-mut-trie-path(alphabet-size : int, p : intstring, value : a) : <st<h>,exn> mut-trie<h,a>
+fun build-mut-trie-path(alphabet-size : int, p : slice, value : a) : <st<h>,exn> mut-trie<h,a>
   val new-vector = vector-init-e(alphabet-size, fn(_) ref(Nothing))
   match p.next
     Nothing -> MutLookupNode(ref(Just(value)), new-vector)

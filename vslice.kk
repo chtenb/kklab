@@ -16,10 +16,29 @@ pub fun vslice/next( slice : vslice<a> ) : maybe<(a,vslice<a>)>
   match slice.at(0)
     Nothing -> Nothing
     Just(a) -> Just((a, slice(start = slice.start + 1, len = slice.len - 1)))
+
+pub value type tailrec<i,o,r>
+  Loop(it : i, loop-arg : o)
+  Stop(ret : r)
+
+pub fun vslice/loop( slice : vslice<a>, f : (maybe<(a,vslice<a>)>, o, b) -> e tailrec<vslice<a>,o,r>, loop-arg : o, fixed-arg : b ) : e r
+  match f(slice.next, loop-arg, fixed-arg)
+    Stop(ret) -> ret
+    Loop(it) -> loop(pretend-decreasing(it), f, loop-arg, fixed-arg)
       
 fun vslice/foreach( slice : vslice<a>, action : a -> e () ) : e ()
-  match slice.next
-    Nothing -> ()
+  loop(slice, foreach-rec, (), action)
+
+fun vslice/foreach-rec( it : maybe<(a,vslice<a>)>, _ : (), action : a -> e () ) : e tailrec<vslice<a>,(),()>
+  match it
+    Nothing -> Stop(())
     Just((x, xs)) -> 
       action(x)
-      foreach(pretend-decreasing(xs), action)
+      Loop(xs,())
+
+// fun vslice/foreach( slice : vslice<a>, action : a -> e () ) : e ()
+//   match slice.next
+//     Nothing -> ()
+//     Just((x, xs)) -> 
+//       action(x)
+//       foreach(pretend-decreasing(xs), action)

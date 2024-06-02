@@ -1,18 +1,21 @@
+import std/core/unsafe
+import std/core/undiv
+
 pub effect yield<a>
   ctl yield(elem : a) : ()
 
-pub fun empty() : yield<t> ()
+pub fun yield/empty() : yield<t> ()
   ()
 
-pub fun list(it : () -> <yield<a>> ()) : list<a>
-  with unsafe-no-div()
+pub fun yield/list(it : () -> <yield<a>> ()) : list<a>
+  with pretend-no-div()
   var result := Nil
   with fun yield(elem)
     result := Cons(elem, result)
   it()
   reverse(result) // List was accumulated in reverse order
 
-pub fun take(n : int, it : () -> <div,yield<a>> ()) : yield<a> ()
+pub fun yield/take(n : int, it : () -> <div,yield<a>> ()) : yield<a> ()
   var count := 0
   with ctl yield(elem)
     if count < n then
@@ -21,7 +24,7 @@ pub fun take(n : int, it : () -> <div,yield<a>> ()) : yield<a> ()
       resume(())
     else
       ()
-  with unsafe-no-div()
+  with pretend-no-div()
   it()
 
 pub fun test-yield() : div list<int>
@@ -35,14 +38,14 @@ pub fun test-yield() : div list<int>
       fib-yield(1,1)
 
 
-pub fun foreach(it : () -> <yield<a>|e> (), do : a -> e ()) : e ()
+pub fun yield/foreach(it : () -> <yield<a>|e> (), do : a -> e ()) : e ()
   with ctl yield(elem)
     do(elem) // Run the foreach block for each element
     resume(()) // We don't want just the first element, so return to call site
   it() // Run yieldator
 
 pub fun to-list2(it : () -> yield<a> ()) : list<a>
-  with unsafe-no-div() // No idea why this is necessary
+  with pretend-no-div() // No idea why this is necessary
   var result := Nil
   foreach(it) fn(elem)
     result := Cons(elem, result)
@@ -57,7 +60,7 @@ fun next(it : iter<a,e>) : e maybe<(a,iter<a,e>)>
 pub fun is-empty(it : iter<a,e>) : e bool
   it.next.is-nothing
   
-pub fun list(it : iter<a,e>) : e list<a>
+pub fun iter/list(it : iter<a,<div|e>>) : <div|e> list<a>
   match it.next
     Nothing -> Nil
     Just((elem, rest)) -> Cons(elem, rest.list)
