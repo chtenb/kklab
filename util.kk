@@ -2,12 +2,19 @@ import std/num/float64
 import std/core/unsafe
 import std/core/undiv
 
-pub fun todo() : exn a
-  throw("Not implemented", ExnTodo)
+fun panic(msg: string): a
+  assert(msg, False)
+  panic(pretend-decreasing(msg)) // Infinite loop to make the return type correct
   
-pub fun debug(msg : string) : total ()
-  unsafe-total({println(msg)})
+fun unsafe-no-exn(f: () -> <exn|e> a, ?kk-file-line: string): e a
+  with handler
+    final ctl throw-exn(exn : exception)
+      panic("Expected no exception at " ++ kk-file-line ++ ": but got " ++ exn.message)
+  f()
 
+pub fun todo() : a
+  panic("todo")
+  
 pub fun last(v : vector<a>) : exn a
   v[v.length - 1]
 
