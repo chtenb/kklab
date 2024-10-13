@@ -1,5 +1,5 @@
 import util
-import std/core/vector
+import list
 import std/core/undiv
 import std/core/unsafe
 import std/num/random
@@ -44,19 +44,12 @@ fun unit/uni/float64() : <random> float64
   random-float64()
   
   
-// Choose an element in a vector with uniform probability
-fun uni/choose(cases: vector<a>): <random> a
-  assert("vector needs to be non-empty", 0 < cases.length)
+// Choose an element in a list with uniform probability
+fun uni/choose(cases: list<a>): <random> a
+  assert("list needs to be non-empty", 0 < cases.length)
   val i = uni/int(cases.length)
   with unsafe-no-exn
-  cases[i]
-
-// Choose a generator in a vector with uniform probability, and run it
-fun block/uni/choose(cases: vector<() -> <random> a>): <random> a
-  assert("vector needs to be non-empty", 0 < cases.length)
-  val i = uni/int(cases.length)
-  with unsafe-no-exn
-  cases[i]()
+  cases.at(i).unjust
  
   
 ///////////
@@ -74,38 +67,68 @@ fun n/gen/bool(n: int) : <random> bool
 // Generate True with probability 1/2
 fun gen/bool() : <random> bool
   gen/bool(1, 2)
-  
-fun gen/int(lower: int, upper: int) : <random> int
-  uni/int(lower, upper)
-  
-fun positive/gen/int(upper: int) : <random> int
-  uni/int(upper)
       
 
-// Choose a case in a vector with uniform probability
-fun gen/choose(cases: vector<(float64, a)>): <random> a
-  assert("vector needs to be non-empty", 0 < cases.length)
-  val sample = uni/float64()
+pub alias sample-space<a> = list<(float64, a)>
+
+fun gen/choose(cases: sample-space<a>): <random> a
+  assert("list needs to be non-empty", 0 < cases.length)
+  val total = cases.map(fst).sum()
+  val sample = uni/float64() * total
   var cumulative := 0.0
   val item = cases.find fn((p, _))
     cumulative := cumulative + p
     sample <= cumulative
-  val last = unsafe-no-exn({cases.last()})
+  val last = unsafe-no-exn({cases.last.unjust})
   item.default(last).snd
 
+pub effect gen<a>
+  ctl outcome(value : a) : ()
+  ctl weighted-outcome(w : float64, value : a) : ()
 
-fun fixed/gen/list(n: int, gen-elem: () -> <random> a): <random> list<a>
-  if n == 0 then
-    []
-  else
-    Cons(gen-elem(), fixed/gen/list(pretend-decreasing(n - 1), gen-elem))
+pub fun sample(action : () -> <gen<a>> ()) : <random> a
+  val gen = build(action)
+  gen/choose(gen)
   
-fun bounded/gen/list(max-size: int, gen-elem: () -> <random> a): <random> list<a>
-  fixed/gen/list(gen/int(max-size), gen-elem)
+pub fun weighted/subspace(weight : int, action : () -> <gen<a>> ()) : <gen<a>> ()
+  val subspace = build(action)
+  val size = subspace.length
+  subspace.foreach fn((w, value))
+    weighted-outcome(w / size.float64 * weight.float64, value)
+    
+pub fun subspace(action : () -> <gen<a>> ()) : <gen<a>> ()
+  weighted/subspace(1, action)
+  
+pub fun gen/build(action : () -> <gen<a>> ()) : sample-space<a>
+  with pretend-no-div()
+  var outcomes := Nil
+  handler
+    ctl outcome(value)
+      outcomes := Cons((1.0, value), outcomes)
+      resume(())
+    ctl weighted-outcome(w, value)
+      outcomes := Cons((w, value), outcomes)
+      resume(())
+  action()
+  outcomes
+  
+fun gen/int(lower: int, upper: int) : <random> int
+  val x = uni/int(lower, upper)
+  sample
+    subspace
+      [-1, 0, 1, lower, lower + 1, upper - 1, upper - 2].foreach fn(i)
+        when(lower <= i && i <= upper)
+          outcome(i)
+    subspace(2)
+          outcome(x)
   
 
-fun main()
-  val seed = srandom-int32().int
-  println("Generated seed " ++ seed.show)
-  with pseudo-random(seed)
-  println(gen/choose([(0.1, "x"), (0.9, "y")].vector).show)
+// fun fixed/gen/list(n: int, gen-elem: () -> <random> a): <random> list<a>
+//   if n == 0 then
+//     []
+//   else
+//     Cons(gen-elem(), fixed/gen/list(pretend-decreasing(n - 1), gen-elem))
+  
+// fun bounded/gen/list(max-size: int, gen-elem: () -> <random> a): <random> list<a>
+//   fixed/gen/list(gen/int(max-size), gen-elem)
+  

@@ -2,6 +2,7 @@ import std/num/float64
 import std/core/unsafe
 import std/core/undiv
 
+// EXCEPTIONS
   
 fun panic(msg: string): a
   assert(msg, False)
@@ -15,6 +16,13 @@ fun unsafe-no-exn(f: () -> <exn|e> a, ?kk-file-line: string): e a
 
 pub fun todo() : a
   panic("todo")
+
+  
+// BRANCHING
+pub fun when(condition : bool, action : () -> e ()) : e ()
+  if condition then action() else ()
+
+// ORDERING
 
 pub fun min-by-exn(l : list<a>, ordering : a -> float64) : exn a
   match l
@@ -33,96 +41,6 @@ fun min-by-rec(l : list<a>, ordering : a -> float64, smallest : float64, result 
       else
         min-by-rec(tail, ordering, smallest, result)
 
-// Show a vector
-pub fun show( xs : vector<a>, ?show : a -> e string ) : e string
-  "vec[" ++ xs.map(show).join(",") ++ "]"
-
-// Return the first element that matches the predicate.
-fun vector/find(v: vector<a>, pred: a -> e bool): e maybe<a>
-  v.foreach-while fn(a)
-    if pred(a) then Just(a) else Nothing
-
-pub fun vector/last(v : vector<a>) : exn a
-  v[v.length - 1]
-
-pub fun vector/any(v : vector<a>, pred : a -> bool) : _ bool
-  fun rec(i : int) : _ bool
-    if v.length <= i then False
-    else if pred(v[i]) then True 
-    else rec(i+1)
-  rec(0)
-      
-pub fun vector/all(v : vector<a>, pred : a -> bool) : _ bool
-  fun rec(i : int) : _ bool
-    if v.length <= i then True
-    else if !pred(v[i]) then False 
-    else rec(i+1)
-  rec(0)
-  
-pub fun vector/index-of(v : vector<a>, pred : a -> bool) : _ int
-  fun rec(i : int) : _ int
-    if v.length <= i then -1
-    else if pred(v[i]) then i 
-    else rec(i+1)
-  rec(0)
-
-pub fun vector/sum(v : vector<int>) : _ int
-  fun rec(i : int)
-    if v.length <= i then 0
-    else v[i] + rec(i+1)
-  rec(0)
-
-pub fun vector/minimum(v : vector<int>) : _ int
-  assert("vector must be non-empty", v.length > 0)
-  fun rec(i : int, m : int) : _ int
-    if v.length <= i then m
-    else rec(i+1, min(v[i], m))
-  rec(1, v[0])
-
-pub fun vector/empty() : vector<a>
-  unit/vector()
-
-pub fun vector/singleton(elem : a) : vector<a>
-  vector(1, elem)
-  
-pub fun vector/unzip(v : vector<(a,b)>) : _ (vector<a>, vector<b>)
-  // val first = vector-init-total(v.length, fn(i) unsafe-total({v[i].fst}))
-  // val second = vector-init-total(v.length, fn(i) unsafe-total({v[i].snd}))
-  val first = vector-init(v.length, fn(i) v[i].fst)
-  val second = vector-init(v.length, fn(i) v[i].snd)
-  (first, second)
-
-pub fun vector/append(first : vector<a>, second : vector<a>) : _ vector<a>
-  // vector-init-total(first.length + second.length, fn(i) unsafe-total({index-two(first, second, i)}))
-  vector-init(first.length + second.length, fn(i) index-two(first, second, i))
-  
-fun vector/index-two(first : vector<a>, second : vector<a>, i: int) : _ a
-  if i < first.length then first[i] else second[i]
-  
-fun vector/vector/join(vs : vector<vector<a>>) : _ vector<a>
-  vector-init(vs.map(length).sum(), fn(i) vs.index-nested(i))
-  
-fun vector/index-nested(vs : vector<vector<a>>, i: int) : _ a
-  var offset := 0
-  vs.foreach-while fn(v)
-    if i - offset < v.length then 
-      Just(v[i]) 
-    else 
-      offset := offset + v.length
-      Nothing
-  panic("Index out of bounds")
-
-fun vector/monoid/join(v : vector<m>, ?empty : () -> m, ?append : (m, m) -> m) : _ m
-  var result := @implicit/empty()
-  v.foreach fn(m)
-    result := append(result, m)
-  result
-
-fun string/empty() : string
-  ""
-
-fun string/append(first : string, second : string) : string
-  first ++ second
 
 pub fun merge-sort(l : list<a>, at-most : (a, a) -> bool) : list<a>
   match l
@@ -153,6 +71,18 @@ fun uniq(sorted-list : list<a>, eq : (a, a) -> bool) : list<a>
       Cons(prev, _) -> if eq(prev, x) then acc else Cons(x, acc)
   dedupped.reverse
 
+  
+  
+// STRING
+
+fun string/empty() : string
+  ""
+
+fun string/append(first : string, second : string) : string
+  first ++ second
+
+
+
 // OUTDATED
 
 fun vector-init-e(n : int, g : int -> e a) : e vector<a>
@@ -180,7 +110,3 @@ fun mi/eq(ma : maybe<int>, mb : maybe<int>) : bool
 
 pub fun vec(l : list<a>) : vector<a>
   l.vector
-  
-fun main()
-  val v = ["1", "2"].vec
-  join(v)

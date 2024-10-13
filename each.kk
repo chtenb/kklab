@@ -1,7 +1,7 @@
 
 pub effect each
   ctl each(elems : list<a>) : a
-  ctl fail() : a
+  ctl fail() : ()
 
 pub fun guard(pred : bool) : each ()
   if pred then () else fail()
@@ -13,11 +13,12 @@ pub fun list-comp(action : () -> each a) : list<a>
     ctl fail() []
   action()
 
-pub fun test-each()
-  list-comp
-    val x = each([1,2,3])
-    val y = each([1,2,2])
+pub fun main()
+  val l = list-comp
+    val x = each(list(1,1000))
+    val y = each(list(1,1000))
     val z = x+y
     guard (z != 3)
     z * z
+  l.sum()
 
