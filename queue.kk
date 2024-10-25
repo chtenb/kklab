@@ -1,5 +1,7 @@
 import std/core/list
 
+// FIXNOW: fix operation terminology
+
 // Invariant: front.is-nil implies back.is-nil
 // This is to enable constant time peek operation
 abstract value struct queue<a>(front : list<a>, back : list<a>)
