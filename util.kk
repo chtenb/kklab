@@ -22,6 +22,13 @@ pub fun todo() : a
 pub fun when(condition : bool, action : () -> e ()) : e ()
   if condition then action() else ()
 
+pub fun foldl-while(l : list<a>, empty : b, f : (b, a) -> maybe<b>) : b
+  match l
+    Nil -> empty
+    Cons(x, xs) -> match f(empty, x)
+      Nothing -> empty
+      Just(b) -> foldl-while(xs, b, f)
+
 // ORDERING
 
 pub fun min-by-exn(l : list<a>, ordering : a -> float64) : exn a

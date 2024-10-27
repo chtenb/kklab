@@ -39,3 +39,10 @@ pub fun foldl(it : iter<a,e>, empty : b, f : (b, a) -> e b) : e b
     Nothing -> empty
     Just((a, rest)) -> foldl(pretend-decreasing(rest), f(empty, a), f)
   
+pub fun index-of(it : iter<a,e>, pred : a -> e bool) : e int
+  index-of-rec(it, pred, 0)
+  
+fun index-of-rec(it : iter<a,e>, pred : a -> e bool, offset : int) : e int
+  match it.next
+    Nothing -> -1
+    Just((x, rest)) -> if pred(x) then offset else index-of-rec(pretend-decreasing(rest), pred, offset + 1)
