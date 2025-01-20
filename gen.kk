@@ -67,68 +67,69 @@ fun n/gen/bool(n: int) : <random> bool
 // Generate True with probability 1/2
 fun gen/bool() : <random> bool
   gen/bool(1, 2)
-      
 
-pub alias sample-space<a> = list<(float64, a)>
+// pub alias space<a> = () -> <gen<a>> ()
+pub alias gen<a> = <div,random,outcome<a>>
 
-fun gen/choose(cases: sample-space<a>): <random> a
-  assert("list needs to be non-empty", 0 < cases.length)
-  val total = cases.map(fst).sum()
-  val sample = uni/float64() * total
-  var cumulative := 0.0
-  val item = cases.find fn((p, _))
-    cumulative := cumulative + p
-    sample <= cumulative
-  val last = unsafe-no-exn({cases.last.unjust})
-  item.default(last).snd
-
-pub effect gen<a>
+pub div effect outcome<a>
   ctl outcome(value : a) : ()
-  ctl weighted-outcome(w : float64, value : a) : ()
-
-pub fun sample(action : () -> <gen<a>> ()) : <random> a
-  val gen = build(action)
-  gen/choose(gen)
+  ctl subspace(s : () -> <div,random,outcome<a>> ()) : ()
   
-pub fun weighted/subspace(weight : int, action : () -> <gen<a>> ()) : <gen<a>> ()
-  val subspace = build(action)
-  val size = subspace.length
-  subspace.foreach fn((w, value))
-    weighted-outcome(w / size.float64 * weight.float64, value)
-    
-pub fun subspace(action : () -> <gen<a>> ()) : <gen<a>> ()
-  weighted/subspace(1, action)
-  
-pub fun gen/build(action : () -> <gen<a>> ()) : sample-space<a>
-  with pretend-no-div()
+pub fun sample(space : () -> gen<a> ()) : <div,random> a
+  // with pretend-no-div()
   var outcomes := Nil
-  handler
+  var subspaces := Nil
+  val h = handler
     ctl outcome(value)
-      outcomes := Cons((1.0, value), outcomes)
+      outcomes := Cons(value, outcomes)
       resume(())
-    ctl weighted-outcome(w, value)
-      outcomes := Cons((w, value), outcomes)
+    ctl subspace(g)
+      subspaces := Cons(g, subspaces)
       resume(())
-  action()
-  outcomes
-  
-fun gen/int(lower: int, upper: int) : <random> int
-  val x = uni/int(lower, upper)
-  sample
-    subspace
-      [-1, 0, 1, lower, lower + 1, upper - 1, upper - 2].foreach fn(i)
-        when(lower <= i && i <= upper)
-          outcome(i)
-    subspace(2)
-          outcome(x)
+  h(space)
+  val outcomesCount = outcomes.length
+  val subspacesCount = subspaces.length
+  val totalCount = outcomesCount + subspacesCount
+  val i = uni/int(totalCount)
+  match outcomes.at(i)
+    Just(outcome) -> outcome
+    Nothing ->
+      val subspace = unsafe-no-exn
+        subspaces.at(outcomesCount + i).unjust
+      sample(subspace)
+
+fun weighted/outcome(w : int, value : a) : <gen<a>> ()
+  for(1, w) fn(_)
+    outcome(value)
+    
+fun weighted/subspace(w : int, space : () -> gen<a> ()) : <gen<a>> ()
+  for(1, w) fn(_)
+    subspace(space)
   
 
-// fun fixed/gen/list(n: int, gen-elem: () -> <random> a): <random> list<a>
-//   if n == 0 then
-//     []
-//   else
-//     Cons(gen-elem(), fixed/gen/list(pretend-decreasing(n - 1), gen-elem))
+    
+fun positive/gen/int(upper: int) : <gen<int>> ()
+  gen/int(0, upper)
+
+fun gen/int(lower: int, upper: int) : <gen<int>> ()
+  val x = uni/int(lower, upper)
+  subspace
+    [-1, 0, 1, lower, lower + 1, upper - 1, upper - 2].foreach fn(i)
+      when(lower <= i && i <= upper)
+        outcome(i)
+  subspace
+    outcome(x)
   
-// fun bounded/gen/list(max-size: int, gen-elem: () -> <random> a): <random> list<a>
-//   fixed/gen/list(gen/int(max-size), gen-elem)
+
+    
+fun fixed/gen/list(n: int, gen-elem: () -> <gen<a>> ()): <div,random> list<a>
+  if n <= 0 then
+    []
+  else
+    Cons(sample(gen-elem), fixed/gen/list(pretend-decreasing(n - 1), gen-elem))
+  
+fun bounded/gen/list(max-size: int, gen-elem: () -> <gen<a>> ()): <div,random> list<a>
+  val size = sample
+    positive/gen/int(max-size)
+  fixed/gen/list(size, gen-elem)
   

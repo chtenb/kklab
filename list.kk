@@ -1,4 +1,4 @@
-pub fun list/at(l : list<a>, index : int) : maybe<a>
+pub fun at(l : list<a>, index : int) : maybe<a>
   fun rec(xs : list<a>, i : int) : maybe<a>
     match xs
       Nil -> Nothing
