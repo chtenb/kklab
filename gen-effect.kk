@@ -52,6 +52,11 @@ fun delay(r : () -> <random,div> a) : gen<a> ()
   subspace
     outcome(r())
 
+fun bind(space : () -> gen<a> (), f : a -> gen<b> ()) : gen<b> ()
+  subspace
+    val a = sample(space)
+    f(a)
+
 fun weighted/outcome(w : int, value : a) : gen<a> ()
   for(w) fn(_)
     outcome(value)
@@ -97,8 +102,10 @@ fun fixed/gen/list(length: int, gen-elem: () -> gen<a> ()): gen<list<a>> ()
     outcome(rec(length))
   
 fun bounded/gen/list(max-length: int, gen-elem: () -> gen<a> ()): gen<list<a>> ()
-  subspace
-    val size = sample
-      gen/int(max-length)
-    fixed/gen/list(size, gen-elem)
+  with size <- (fn(){gen/int(max-length)}).bind
+  fixed/gen/list(size, gen-elem)
+  // subspace
+  //   val size = sample
+  //     gen/int(max-length)
+  //   fixed/gen/list(size, gen-elem)
   

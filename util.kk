@@ -2,6 +2,11 @@ import std/num/float64
 import std/core/unsafe
 import std/core/undiv
 
+// FUNCTIONS
+pub infixr 55 (>.)
+fun (>.)(f : a -> b, g : b -> c) : (a -> c)
+  fn(x) g(f(x))
+
 // EXCEPTIONS
   
 fun panic(msg: string): a
