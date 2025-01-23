@@ -46,3 +46,11 @@ fun index-of-rec(it : iter<a,e>, pred : a -> e bool, offset : int) : e int
   match it.next
     Nothing -> -1
     Just((x, rest)) -> if pred(x) then offset else index-of-rec(pretend-decreasing(rest), pred, offset + 1)
+
+pub fun at(it : iter<a,e>, index : int) : e maybe<a>
+  fun rec(it' : iter<a,e>, i : int) : e maybe<a>
+    match it'.next
+      Nothing -> Nothing
+      Just((x, xs)) -> if i == 0 then Just(x) else rec(xs, pretend-decreasing(i - 1))
+  if index < 0 then Nothing else rec(it, index)
+

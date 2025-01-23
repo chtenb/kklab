@@ -40,7 +40,7 @@ pub fun sample(space : () -> <random,gen<a>> ()) : <div,random> a
   val outcomesCount = outcomes.length
   val subspacesCount = subspaces.length
   val totalCount = outcomesCount + subspacesCount
-  val i = uni/int(totalCount)
+  val i = uniform/int(totalCount)
   match outcomes.at(i)
     Just(outcome) -> outcome
     Nothing ->
@@ -69,7 +69,7 @@ fun weighted/subspace(w : int, space : () -> gen<a> ()) : gen<a> ()
 // Generate True with probability k/n
 fun k/n/gen/bool(k: int, n: int) : gen<bool> ()
   delay
-    uni/int(0, n) < k
+    uniform/int(0, n) < k
   
 // Generate True with probability 1/n
 fun n/gen/bool(n: int) : gen<bool> ()
@@ -89,7 +89,7 @@ fun gen/int(lower: int, upper: int) : gen<int> ()
       when(lower <= i && i <= upper)
         outcome(i)
   subspace
-    outcome(uni/int(lower, upper))
+    outcome(uniform/int(lower, upper))
   
     
 fun fixed/gen/list(length: int, gen-elem: () -> gen<a> ()): gen<list<a>> ()
