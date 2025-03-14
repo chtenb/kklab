@@ -19,6 +19,7 @@ import std/core/list
 import rng
 import each
 import stream
+import iter
 import std/time
 import std/time/duration
 
@@ -55,6 +56,21 @@ fun pure(value : a) : gen<a>
 fun impossible() : gen<a>
   Space(fn() { [] })
 
+fun space(get-gens : () -> <pure,random> list<gen<a>>) : gen<a>
+  Space(get-gens)
+  
+fun uniform/append(x : gen<a>, y : gen<a>) : gen<a>
+  match x
+    Outcome -> match y
+      Outcome -> Space(fn() [x, y])
+      Space(ys) -> Space(fn() [x] ++ ys())
+    Space(xs) -> match y
+      Outcome -> Space(fn() xs() ++ [y])
+      Space(ys) -> Space(fn() xs() ++ ys())
+        
+fun weight(g : gen<a>, w : int) : gen<a>
+  Space(fn() g.replicate(w))
+  
 fun random/gen(r : () -> <pure,random> a) : gen<a>
   Space
     [ Outcome(r())
@@ -114,11 +130,24 @@ fun weighted/space(weight : int, get-gens : () -> <pure,random,yield<gen<a>>> ()
 fun outcome(value : a) : yield<gen<a>> ()
   yield(Outcome(value))
 
-fun yield-from(gen : gen<a>) : <pure,random,yield<gen<a>>> ()
+fun gen/stream(gen : gen<a>) : <pure,random,yield<gen<a>>> ()
   match gen
     Outcome(value) -> outcome(value)
     Space(get-gens) -> get-gens().foreach fn(g)
       yield(g)
+
+fun gen/iter(gen : gen<a>) : iter<gen<a>,<pure,random>>
+  iter
+    gen.stream
+    
+fun iter/outcomes(x : b, ?iter : b -> iter<a,<yield<gen<a>>|e>>) : <yield<gen<a>>|e> ()
+  x.iter.iter/foreach fn(a)
+    outcome(a)
+    
+fun stream/outcomes(x : b, ?stream : b -> <yield<a>|e> ()) : <yield<gen<a>>|e> ()
+  ({mask<yield>{x.?stream}}).stream/foreach fn(a)
+    mask behind<yield>
+      outcome(a)
 
 // 
 // Misc converters
@@ -182,11 +211,15 @@ val uppercase : gen<char> = char('A', 'Z')
 val digit : gen<char> = char('0', '9')
 val alphanum : gen<char> = 
   gen
-    yield-from(lowercase)
-    yield-from(uppercase)
-    yield-from(digit)
+    stream(lowercase)
+    stream(uppercase)
+    stream(digit)
     outcome('_')
 
+
+fun special-float64() : gen<float64>
+  gen
+    outcomes([0.0, 1.0, flt-epsilon, flt-max, flt-min, flt-true-min, nan, neginf, posinf, pi])
 
 fun float64() : gen<float64>
   todo()

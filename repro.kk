@@ -1,9 +1,17 @@
-fun main()
-  ()
+struct person
+  age : int
+  name : string
+  lastname : string
+  realname : string = name
 
-effect exn_<a>
-  fun throw_(s: string): a
+val brian = Person( 29, "Brian", "Johnson" )
   
-val try_ = handler
-  return(x) -> Right(x)
-  fun throw_(exn) -> Left(exn)
+fun birthday( p : person ) : person
+  p( age = p.age + 1 )
+
+
+struct transaction
+  from-account : string
+  to-account : string
+  
+val tran = Transaction("a", "b")

@@ -54,3 +54,11 @@ pub fun at(it : iter<a,e>, index : int) : e maybe<a>
       Just((x, xs)) -> if i == 0 then Just(x) else rec(xs, pretend-decreasing(i - 1))
   if index < 0 then Nothing else rec(it, index)
 
+/// Converters
+
+pub fun list/iter(l : list<a>) : iter<a,e>
+  Iter
+    match l
+      Nil -> Nothing
+      Cons(x,xs) -> Just((x, xs.iter))
+

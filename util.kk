@@ -53,70 +53,120 @@ fun min-by-rec(l : list<a>, ordering : a -> float64, smallest : float64, result 
       else
         min-by-rec(tail, ordering, smallest, result)
 
-
-pub fun merge-sort(l : list<a>, at-most : (a, a) -> bool) : list<a>
+pub fun sort(l : list<a>, ?(<=) : (a, a) -> bool) : list<a>
   match l
     Nil -> Nil
     Cons(x, Nil) -> [x]
     _ ->
       val n = l.length / 2
       val (xs,ys) = l.split(n)
-      val sorted-xs = merge-sort(pretend-decreasing(xs), at-most)
-      val sorted-ys = merge-sort(pretend-decreasing(ys), at-most)
-      sorted-merge(sorted-xs, sorted-ys, at-most)
+      val sorted-xs = sort(pretend-decreasing(xs), ?(<=) = (<=))
+      val sorted-ys = sort(pretend-decreasing(ys), ?(<=) = (<=))
+      sorted-merge(sorted-xs, sorted-ys, (<=))
 
-fun sorted-merge(l1 : list<a>, l2 : list<a>, at-most : (a, a) -> bool) : list<a>
+fun sorted-merge(l1 : list<a>, l2 : list<a>, (<=) : (a, a) -> bool) : list<a>
   match l1
     Nil -> l2
     Cons(x, xs) -> match l2
       Nil -> l1
       Cons(y, ys) ->
-        if at-most(x, y) then
-          Cons(x, sorted-merge(xs, l2, at-most))
+        if x <= y then
+          Cons(x, sorted-merge(xs, l2, (<=)))
         else
-          Cons(y, sorted-merge(l1, ys, at-most))
+          Cons(y, sorted-merge(l1, ys, (<=)))
 
-fun uniq(sorted-list : list<a>, eq : (a, a) -> bool) : list<a>
+pub fun uniq(sorted-list : list<a>, ?(==) : (a, a) -> bool) : list<a>
   val dedupped = sorted-list.foldl([]) fn(acc, x) 
     match acc
       Nil -> Cons(x, Nil)
-      Cons(prev, _) -> if eq(prev, x) then acc else Cons(x, acc)
+      Cons(prev, _) -> if prev == x then acc else Cons(x, acc)
   dedupped.reverse
 
   
-  
 // STRING
 
-fun string/empty() : string
+pub fun string/empty() : string
   ""
 
-fun string/append(first : string, second : string) : string
+pub fun string/append(first : string, second : string) : string
   first ++ second
 
+pub fun string/unquote(s : string) : string
+  if s.count > 2 && s.starts-with("'").is-just && s.ends-with("'").is-just then
+    s.tail.truncate(s.count - 2)
+  else
+    s
+
+pub fun spaces/string/indent(s : string, spaces : int) : string
+  s.indent(" ".repeat(spaces))
+
+pub fun string/indent(s : string, indentstring : string) : string
+  s.split("\n").map(fn(line) indentstring ++ line).join("\n")
 
 
-// OUTDATED
+// LIST QUERIES
 
-fun vector-init-e(n : int, g : int -> e a) : e vector<a>
-  list(0, n - 1).map(g).vector
+pub fun sort-by(l : list<a>, f : a -> b, ?(<=) : (b, b) -> bool) : list<a>
+  l.sort(?(<=) = fn(x,y) f(x) <= f(y))
 
-fun lls/show(lls : list<list<string>>) : string
-  lls.map(fn(l) l.join(", ")).join("\n")
+pub fun group-by(l : list<a>, f : a -> b, ?(<=) : (b, b) -> bool) : list<list<a>>
+  pretend-no-div
+    l.sort-by(f, ?(<=) = (<=)).group-sorted(f, ?(<=) = (<=))
   
-fun lc/show(chars : list<char>) : string
-  chars.string.show
-    
-fun show-maybe(x : maybe<a>, show : a -> string, default : string) : string
-  match x
-    Nothing -> default
-    Just(y) -> show(y)
+fun group-sorted(l : list<a>, f : a -> b, ?(<=) : (b, b) -> bool) : div list<list<a>>
+  var result := Nil
+  var group := Nil
+  l.foreach fn(x)
+    match group
+      Nil ->
+        group := Cons(x, Nil)
+        ()
+      Cons(prev, _) -> 
+        if f(x) <= f(prev) then
+          group := Cons(x, group)
+        else
+          result := Cons(group, result)
+          group := Nil
+  result
 
-fun mi/eq(ma : maybe<int>, mb : maybe<int>) : bool
-  match ma
-    Nothing -> mb.is-nothing
-    Just(a) -> match mb
-      Nothing -> False
-      Just(b) -> a == b
+
+// TUPLES
+
+pub fun tuple2/lexi/(<=)((x1,x2) : (a,b), (y1,y2) : (a,b), ?fst/(<=) : (a,a) -> bool, ?snd/(<=) : (b,b) -> bool) : bool
+  x1 <= y1 && (y1 <= x1).implies(
+    x2 <= y2
+  )
+  
+pub fun tuple3/lexi/(<=)((x1,x2,x3) : (a,b,c), (y1,y2,y3) : (a,b,c), ?fst/(<=) : (a,a) -> bool, ?snd/(<=) : (b,b) -> bool, ?thd/(<=) : (c,c) -> bool) : bool
+  x1 <= y1 && (y1 <= x1).implies(
+    x2 <= y2 && (y2 <= x2).implies(
+      x3 <= y3
+    )
+  )
+  
+pub fun tuple4/lexi/(<=)((x1,x2,x3,x4) : (a,b,c,d), (y1,y2,y3,y4) : (a,b,c,d), ?fst/(<=) : (a,a) -> bool, ?snd/(<=) : (b,b) -> bool, ?thd/(<=) : (c,c) -> bool, ?frt/(<=) : (d,d) -> bool) : bool
+  x1 <= y1 && (y1 <= x1).implies(
+    x2 <= y2 && (y2 <= x2).implies(
+      x3 <= y3 && (y3 <= x3).implies(
+        x4 <= y4
+      )
+    )
+  )
+
+
+// ALGEBRA
+
+pub fun monoid/fold(l : list<a>, ?empty : a, ?append : (a,a) -> a) : a
+  l.foldl(empty, append)
+
+pub fun bool/implies(x : bool, y : bool) : bool
+  !x || y
+
+pub fun poset/(==)(x : a, y : a, ?(<=) : (a, a) -> bool) : bool
+  x <= y && y <= x
+
+pub fun monoid/(++)(x : a, y : a, ?append : (a,a) -> a) : a
+  x.append(y)
 
 // REPL
 
