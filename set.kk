@@ -15,3 +15,7 @@ pub fun list/set(l : list<a>, ?(<=) : (a,a) -> bool) : set<a>
 
 pub fun show(s : set<a>, ?show : a -> string) : string
   s.list.show
+  
+pub fun (<=)(xs : set<a>, ys : set<a>, ?(<=) : (a,a) -> bool) : bool
+  xs.list.sort <= ys.list.sort
+  

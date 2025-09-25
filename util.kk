@@ -129,6 +129,12 @@ fun group-sorted(l : list<a>, f : a -> b, ?(<=) : (b, b) -> bool) : div list<lis
           group := Nil
   result
 
+pub fun (<=)(xs : list<a>, ys : list<a>, ?(<=) : (a,a) -> bool) : bool
+  match xs
+    Nil -> ys.is-empty
+    Cons(x, xxs) -> match ys
+      Nil -> True
+      Cons(y, yys) -> x <= y && (y <= x).implies(xxs <= yys)
 
 // TUPLES
 
