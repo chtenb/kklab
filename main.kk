@@ -1,12 +1,12 @@
 import std/num/random
 import std/num/int32
 
-import gen
+import tpsv
 
 fun main()
-  val seed = srandom-int32().int
-  println("Generated seed " ++ seed.show)
-  with pseudo-random(seed)
-  // println(gen/choose([(0.1, {"x"}), (0.9, {"y"})]).().show)
-  println(sample({gen/int(0, 10)}).show)
+  val tsv = "a\tb\tc\t\n1\t2\t3"
+  val markdown = "|a|b|c|\n|-|-|-|\n|1|2|3|"
+  read-tsv(tsv).println
+  read-markdown(markdown).println
+
 

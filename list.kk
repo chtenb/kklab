@@ -21,3 +21,9 @@ fun pure(a: a): list<a>
 
 fun guard(a : bool, f: () -> list<a>): list<a>
   if a then f() else []
+
+fun trim-start(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
+  l.drop-while(fn(elm) trim.find(fn(t) elm == t).is-just)
+
+fun trim-end(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
+  l.reverse.trim-start(trim).reverse
