@@ -13,6 +13,9 @@ pub fun remove-at(l : list<a>, index : int) : list<a>
   if index < 0 then l else rec(l, index)
 
 
+fun range/list(n: int): list<int>
+  range/list(0, n - 1)
+
 fun for(low: int, high: int, f: int -> list<b>): list<b>
   list(low, high).flatmap(f)
 

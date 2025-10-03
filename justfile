@@ -1,2 +1,2 @@
 default:
-    koka -e main.kk
+    $MY_KOKA -e main.kk

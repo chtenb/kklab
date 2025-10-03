@@ -5,8 +5,8 @@ import std/core/undiv
 import std/num/float64
 
 // Show a vector
-pub fun show( xs : vector<a>, ?show : a -> e string ) : e string
-  "vec[" ++ xs.map(show).join(",") ++ "]"
+pub fun vector/show( xs : vector<a>, ?show : a -> e string ) : e string
+  "vec[" ++ xs.map(show).vectorsep/join(",") ++ "]"
 
 pub fun unsafe-at(v : vector<a>, index : int) : a
   with unsafe-no-exn

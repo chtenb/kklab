@@ -27,6 +27,11 @@ pub fun todo() : a
 pub fun when(condition : bool, action : () -> e ()) : e ()
   if condition then action() else ()
 
+pub fun maybe/effect/default(m : maybe<a>, fallback : () -> e a) : e a
+  match m
+    Just(x) -> x
+    Nothing -> fallback()
+
 pub fun foldl-while(l : list<a>, empty : b, f : (b, a) -> maybe<b>) : b
   match l
     Nil -> empty
@@ -53,7 +58,10 @@ fun min-by-rec(l : list<a>, ordering : a -> float64, smallest : float64, result 
       else
         min-by-rec(tail, ordering, smallest, result)
 
-pub fun sort(l : list<a>, ?(<=) : (a, a) -> bool) : list<a>
+pub fun order/sort(l : list<a>, ?cmp : (a, a) -> order) : list<a>
+  l.sort(fn(x,y) cmp(x,y).is-lt)
+
+pub fun pre-order/sort(l : list<a>, ?(<=) : (a, a) -> bool) : list<a>
   match l
     Nil -> Nil
     Cons(x, Nil) -> [x]
@@ -90,6 +98,7 @@ pub fun string/empty() : string
 
 pub fun string/append(first : string, second : string) : string
   first ++ second
+  // concat/join([first,second])
 
 pub fun string/unquote(s : string) : string
   if s.count > 2 && s.starts-with("'").is-just && s.ends-with("'").is-just then
@@ -171,8 +180,8 @@ pub fun bool/implies(x : bool, y : bool) : bool
 pub fun poset/(==)(x : a, y : a, ?(<=) : (a, a) -> bool) : bool
   x <= y && y <= x
 
-pub fun monoid/(++)(x : a, y : a, ?append : (a,a) -> a) : a
-  x.append(y)
+// pub fun monoid/(++)(x : a, y : a, ?append : (a,a) -> a) : a
+//   x.append(y)
 
 // REPL
 
