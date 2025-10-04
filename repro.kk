@@ -1,7 +1,23 @@
 import std/core/undiv
 import std/core/unsafe
+import std/core/char
+
+
+// ----- MAIN ------
+pub fun main()
+  val labels = ["abc".vector, "abd".vector]
+  val v/cmp = cmp-lr
+  println(labels.sort.show)
+  // println(labels.sort(default/cmp/(<=)).show)
+  // println(labels.sort(fn(x,y) x <= y).show)
+  // println(labels.order/sort.show)
+  // println(labels.order/sort(cmp-lr).show)
 
 // Merge sort can be done on any pre-order
+// pub fun order/sort(l : list<a>, ?cmp : (a, a) -> order) : list<a>
+//   l.sort(fn(x,y) cmp(x,y).is-lt)
+  // pre-order/sort(l, default/cmp/(<=))
+
 pub fun pre-order/sort(l : list<a>, ?(<=) : (a, a) -> bool) : list<a>
   match l
     Nil -> Nil
@@ -23,10 +39,6 @@ fun sorted-merge(l1 : list<a>, l2 : list<a>, (<=) : (a, a) -> bool) : list<a>
           Cons(x, sorted-merge(xs, l2, (<=)))
         else
           Cons(y, sorted-merge(l1, ys, (<=)))
-
-// But a total order also works of course
-pub fun order/sort(l : list<a>, ?cmp : (a, a) -> order) : list<a>
-  l.sort(fn(x,y) cmp(x,y).is-lt)
 
 // We can define a left-to-right total order on vectors, if the elements are totally ordered
 pub fun vector/cmp-lr(xs : vector<a>, ys : vector<a>, ?cmp : (a,a) -> order): order
@@ -60,9 +72,3 @@ fun panic(msg: string): a
 
 pub fun vector/show( xs : vector<a>, ?show : a -> e string ) : e string
   "vec[" ++ xs.map(show).vectorsep/join(",") ++ "]"
-
-
-// ----- MAIN ------
-pub fun main()
-  val labels = ["abc".vector, "abd".vector]
-  println(labels.sort(cmp-lr).show) // How to call the sort function with the total order?

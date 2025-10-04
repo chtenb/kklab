@@ -34,8 +34,13 @@ pub fun minimal-uniq-prefix-length(label : label<a>, neighbors : list<label<a>>,
     range/list(0, label.length - 1).index-of(fn(i) !(neighbor[i] == label[i]))
   diff-indices.maximum + 1
 
+pub fun minimal-uniq-prefix(label : label<a>, neighbors : list<label<a>>, ?(==) : (a,a) -> bool) : _ pattern<a>
+  val l = minimal-uniq-prefix-length(label, neighbors)
+  label.map-indexed(fn(i, c) if i < l then Just(c) else Nothing)
+
 pub fun compress(labels : list<label<a>>, ?cmp : (a,a) -> order) : list<compressed-label<a>>
-  val sorted-rl = labels.order/sort(cmp-lr)
+  val here/cmp = cmp-lr
+  val sorted-rl = labels.sort()
   var minimal-uniq-prefixes := []
   []
   

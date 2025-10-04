@@ -58,9 +58,6 @@ fun min-by-rec(l : list<a>, ordering : a -> float64, smallest : float64, result 
       else
         min-by-rec(tail, ordering, smallest, result)
 
-pub fun order/sort(l : list<a>, ?cmp : (a, a) -> order) : list<a>
-  l.sort(fn(x,y) cmp(x,y).is-lt)
-
 pub fun pre-order/sort(l : list<a>, ?(<=) : (a, a) -> bool) : list<a>
   match l
     Nil -> Nil

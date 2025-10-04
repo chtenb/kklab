@@ -1,5 +1,6 @@
 import std/num/random
 import std/num/int32
+import std/core/char
 
 import vector
 

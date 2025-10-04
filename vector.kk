@@ -4,6 +4,8 @@ import std/core/unsafe
 import std/core/undiv
 import std/num/float64
 
+import coka-std/std/core-extras
+
 // Show a vector
 pub fun vector/show( xs : vector<a>, ?show : a -> e string ) : e string
   "vec[" ++ xs.map(show).vectorsep/join(",") ++ "]"
@@ -82,7 +84,7 @@ pub fun float64/sum(v : vector<float64>) : float64
   v.monoid/join(0.0, float64/(+))
   
 fun join(vs : vector<vector<a>>) : _ vector<a>
-  vector-init(vs.map(length).sum(), fn(i) vs.index-nested(i))
+  vector-init(vs.vector/map(vector/length).sum(), fn(i) vs.index-nested(i))
   
 fun index-nested(vs : vector<vector<a>>, i: int) : _ a
   var offset := 0
@@ -93,3 +95,9 @@ fun index-nested(vs : vector<vector<a>>, i: int) : _ a
       offset := offset + v.length
       Nothing
   panic("Index out of bounds")
+
+pub fun map-indexed(v : vector<a>, f : (idx : int, value : a) -> e b) : e vector<b>
+  val w = unsafe-vector(v.length.ssize_t)
+  v.foreach-indexedz fn(i,x)
+    unsafe-assign(w,i,f(i.int, x))
+  w
