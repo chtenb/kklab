@@ -174,8 +174,8 @@ pub fun monoid/fold(l : list<a>, ?empty : a, ?append : (a,a) -> a) : a
 pub fun bool/implies(x : bool, y : bool) : bool
   !x || y
 
-pub fun poset/(==)(x : a, y : a, ?(<=) : (a, a) -> bool) : bool
-  x <= y && y <= x
+// pub fun poset/(==)(x : a, y : a, ?(<=) : (a, a) -> bool) : bool
+//   x <= y && y <= x
 
 // pub fun monoid/(++)(x : a, y : a, ?append : (a,a) -> a) : a
 //   x.append(y)
