@@ -18,12 +18,12 @@ import list
 
 
 import label-compression
-fun parse-storage-groups() : io list<vslice<char>>
+fun parse-storage-groups() : io list<vector<char>>
   val fpath = "C:\\Users\\ChieltenBrinke\\Desktop\\Storage Group for all Volumes by Volume Label.tsv"
   val tsv = read-text-file(fpath.path)
   tsv.lines.drop(1).map(fn(line) line.split("\t")).flatmap-maybe(fn(l)
     match l
-      Cons(stgrp, Cons(_, Nil)) -> Just(stgrp.vector.full/slice)
+      Cons(stgrp, Cons(_, Nil)) -> Just(stgrp.vector)
       _ -> 
         // println("can't parse " ++ l.show)
         Nothing
@@ -35,10 +35,10 @@ fun pattern/show(pat : vector<maybe<char>>) : string
       Just(c) -> c.string
   ).vector/join
 fun main(): _ ()
-  // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector.slice)
+  // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector)
   val labels = parse-storage-groups()
-  labels.zip(compress(labels)).foreach fn((label, compressed))
-    println(label.string ++ "  ->  " ++ compressed.pattern/show)
+  compress(labels).foreach fn((label, pattern))
+    println(label.vector/string ++ "  ->  " ++ pattern.pattern/show)
   println("Label count: " ++ labels.length.show)
 
 

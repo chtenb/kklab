@@ -35,6 +35,9 @@ pub fun vector/full/slice(v: vector<a>): vslice<a>
 pub fun vector/start/slice(v: vector<a>, start: int): vslice<a>
   v.slice(start, v.length)
 
+pub fun vector/len/slice(v: vector<a>, len: int): vslice<a>
+  v.slice(0, len)
+
 // TODO: is there a default argument qualifier? Like arg/len?
 pub fun vslice/slice(v: vslice<a>, start: int, len: int): vslice<a>
   Vslice(v.parent, max(0, min(v.length, start)), max(0, min(v.length, len)))
@@ -45,6 +48,8 @@ pub fun vslice/start/slice(v: vslice<a>, start: int): vslice<a>
 pub fun vslice/len/slice(v: vslice<a>, len: int): vslice<a>
   v.slice(0, len)
 
+pub fun vector/lexi/cmp(xs: vector<a>, ys: vector<a>, ?cmp: (a,a) -> order): order
+  xs.slice.lexi/cmp(ys.slice)
 
 pub fun lexi/cmp(xs: vslice<a>, ys: vslice<a>, ?cmp: (a,a) -> order): order
   val x-len = xs.length
@@ -57,6 +62,9 @@ pub fun lexi/cmp(xs: vslice<a>, ys: vslice<a>, ?cmp: (a,a) -> order): order
       Gt -> Just(Gt)
       Eq -> Nothing // continue
   result.default(cmp(x-len, y-len))
+
+pub fun vector/lexi/cmp-reverse(xs: vector<a>, ys: vector<a>, ?cmp: (a,a) -> order): order
+  xs.slice.lexi/cmp-reverse(ys.slice)
 
 pub fun lexi/cmp-reverse(xs: vslice<a>, ys: vslice<a>, ?cmp: (a,a) -> order): order
   val x-len = xs.length
@@ -140,6 +148,9 @@ pub fun vslice/starts-with(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) 
       else
         Just(False)
     result.default(True)
+
+pub fun vector/contains(haystack: vector<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
+  haystack.slice.contains(needle)
 
 pub fun vslice/contains(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
   val result = for-while(haystack.length - needle.length + 1) fn(i)
