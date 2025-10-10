@@ -13,49 +13,80 @@ import vector
 import stream
 import vslice
 
-pub fun cmp-lr(xs : vector<a>, ys : vector<a>, ?cmp : (a,a) -> order): order
-  val x-len = xs.length
-  val y-len = ys.length
-  val min-len = min(x-len, y-len)
-  val common-indices = range/list(min-len)
-  val result = common-indices.foreach-while fn(i)
-    match cmp(xs.unsafe-at(i), ys.unsafe-at(i))
-      Lt -> Just(Lt)
-      Gt -> Just(Gt)
-      Eq -> Nothing // continue
-
-  result.default(cmp(x-len, y-len))
-
-
+// Nothing indicates a multilength wildcard, there should be at most one consecutive wildcard
 pub alias pattern<a> = vector<maybe<a>>
-pub alias compressed-vector<a> = (vector<a>, pattern<a>)
 
-pub fun minimal-uniq-prefix-length(label : vector<a>, neighbors : list<vector<a>>, ?(==) : (a,a) -> bool, ?show : a -> string) : _ int
+pub fun shortest-uniq-prefix-length(
+    label: vslice<a>, neighbors: list<vslice<a>>, ?(==): (a,a) -> bool, ?show: a -> string
+  ): _ int
   val diff-indices = neighbors.map fn(neighbor)
     range/list(0, label.length - 1).index-of fn(i)
-      neighbor[i] != label[i]
+      neighbor.at(i) != label.at(i)
   diff-indices.maximum + 1
 
-pub fun minimal-uniq-prefix(label : vector<a>, neighbors : list<vector<a>>, ?(==) : (a,a) -> bool, ?show : a -> string) : _ pattern<a>
-  val l = minimal-uniq-prefix-length(label, neighbors)
-  label.map-indexed(fn(i, c) if i < l then Just(c) else Nothing)
-
-pub fun minimal-uniq-substr(label : vector<a>, ?cmp : (a,a) -> order, ?show : a -> string) : _ compressed-vector<a>
-  todo()
-
-pub fun compress(labels : list<vector<a>>, ?cmp : (a,a) -> order, ?show : a -> string) : _ list<compressed-vector<a>>
-  val here/cmp = cmp-lr
-  val sorted-lr = labels.sort
-  val sorted-lr-vec = sorted-lr.vector
+pub fun compute-supr(
+    labels: list<vslice<a>>, ?cmp: (a,a) -> order, ?show: a -> string
+  ): _ list<(vslice<a>, int)>
+  val sorted = labels.sort
+  val sorted-vec = sorted.vector
   val label-count = labels.length
-  val patterns = sorted-lr.map-indexed fn(i, l)
+  sorted.map-indexed fn(i, label)
     val neighbors = list
       when (i > 0)
-        yield(sorted-lr-vec[i - 1])
+        yield(sorted-vec[i - 1])
       when (i < label-count - 1)
-        yield(sorted-lr-vec[i + 1])
-    minimal-uniq-prefix(l, neighbors)
-  sorted-lr.zip(patterns)
+        yield(sorted-vec[i + 1])
+    val shortest-len = shortest-uniq-prefix-length(label, neighbors)
+    (label.len/slice(shortest-len), shortest-len)
 
 
+pub fun first-shortest-uniq-infix(
+    label: vslice<a>, best-result: vslice<a>, best-score: int,
+    labels: list<vslice<a>>, ?cmp: (a,a) -> order, ?show: a -> string
+  ): _ (vslice<a>, int)
+  var shortest := label
+  var shortest-len := label.length
+  for(label.length - 2) fn(start)
+    for-while(1, label.length - start) fn(len)
+      if len >= shortest-len then
+        Just(())
+      else
+        val substr = label.slice(start, len)
+        val is-uniq = labels.foreach-while fn(other)
+          if other == label || !other.contains(substr) then
+            Nothing
+          else
+            Just(False)
+        if is-uniq.default(True) then
+          shortest := substr
+          shortest-len := len
+          Just(())
+        else
+          Nothing
+    ()
+  if shortest-len < best-score then
+    (shortest, shortest-len)
+  else
+    (best-result, best-score)
+
+// Pass the labels with the scores so far, for pruning reasons
+pub fun compute-sui(
+    labels : list<vslice<a>>, results: list<(vslice<a>, int)>, ?cmp: (a,a) -> order, ?show: a -> string
+  ): _ list<(vslice<a>, int)>
+  labels.zipwith(results) fn(label, best)
+    val (best-result, best-score) = best
+    first-shortest-uniq-infix(label, best-result, best-score, labels)
+
+fun vslice/pattern(result: vslice<a>): _ pattern<a>
+  val label = result.parent
+  var pattern := result.map(Just)
+  when (result.start > 0)
+    pattern := [Nothing].vector.append(pattern)
+  when (result.end < label.length)
+    pattern := pattern.append([Nothing].vector)
+  pattern
   
+pub fun compress(labels: list<vslice<a>>, ?cmp: (a,a) -> order, ?show: a -> string): _ list<pattern<a>>
+  var results := compute-supr(labels)
+  results := compute-sui(labels, results)
+  results.map(fst >. pattern)

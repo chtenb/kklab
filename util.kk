@@ -4,7 +4,7 @@ import std/core/undiv
 
 // FUNCTIONS
 pub infixr 55 (>.)
-fun (>.)(f : a -> b, g : b -> c) : (a -> c)
+fun (>.)(f : a -> e b, g : b -> e c) : (a -> e c)
   fn(x) g(f(x))
 
 // EXCEPTIONS

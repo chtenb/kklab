@@ -13,20 +13,27 @@ pub fun remove-at(l : list<a>, index : int) : list<a>
   if index < 0 then l else rec(l, index)
 
 
-fun range/list(n: int): list<int>
+pub fun range/list(n: int): list<int>
   range/list(0, n - 1)
 
-fun for(low: int, high: int, f: int -> list<b>): list<b>
+pub fun for(low: int, high: int, f: int -> list<b>): list<b>
   list(low, high).flatmap(f)
 
-fun pure(a: a): list<a>
+pub fun pure(a: a): list<a>
   [a]
 
-fun guard(a : bool, f: () -> list<a>): list<a>
+pub fun guard(a : bool, f: () -> list<a>): list<a>
   if a then f() else []
 
-fun trim-start(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
+pub fun trim-start(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
   l.drop-while(fn(elm) trim.find(fn(t) elm == t).is-just)
 
-fun trim-end(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
+pub fun trim-end(l : list<a>, trim : list<a>, ?(==) : (a,a) -> bool) : list<a>
   l.reverse.trim-start(trim).reverse
+
+pub fun dedup(l : list<a>, ?(==) : (a,a) -> bool) : list<a>
+  var prev-elm := Nothing
+  l.filter fn(elm)
+    val duplicate = prev-elm == Just(elm)
+    prev-elm := Just(elm)
+    !duplicate

@@ -55,9 +55,10 @@ pub val vector/empty : forall<a> vector<a> = unit/vector()
 pub fun singleton(elem : a) : vector<a>
   vector(1, elem)
 
-pub fun append(a : vector<a>, b : vector<a>) : _ vector<a>
-  // vector-init-total(a.length + b.length, fn(i) unsafe-total({index-two(a, b, i)}))
-  vector-init(a.length + b.length, fn(i) index-two(a, b, i))
+pub fun append(a : vector<a>, b : vector<a>) : vector<a>
+  val a-length = a.length
+  vector-init-total(a-length + b.length) fn(i)
+    if i < a-length then a.unsafe-at(i) else b.unsafe-at(i - a-length)
   
 fun index-two(first : vector<a>, second : vector<a>, i: int) : _ a
   if i < first.length then first[i] else second[i]

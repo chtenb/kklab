@@ -1,9 +1,13 @@
 import std/num/random
 import std/num/int32
 import std/core/char
+import std/os/path
+import std/os/file
 
 import vector
 import vslice
+import util
+import list
 
 // import tpsv
 // fun main()
@@ -14,17 +18,28 @@ import vslice
 
 
 import label-compression
-fun main()
-  println("abcaa".vector.slice.starts-with("ab".vector.slice).show)
-  println("abcaa".vector.slice.contains("ab".vector.slice).show)
-  println("abcaa".vector.slice.contains("bc".vector.slice).show)
-  println("abcaa".vector.slice.contains("ca".vector.slice).show)
-  println("abcaa".vector.slice.contains("aa".vector.slice).show)
-  println("abcaa".vector.slice.contains("abc".vector.slice).show)
-  println("abcaa".vector.slice.contains("bca".vector.slice).show)
-  println("abcaa".vector.slice.contains("caa".vector.slice).show)
-  println("abcaa".vector.slice.contains("abcaa".vector.slice).show)
-  println(compress(["abcaa".vector, "abdbb".vector]).show)
+fun parse-storage-groups() : io list<vslice<char>>
+  val fpath = "C:\\Users\\ChieltenBrinke\\Desktop\\Storage Group for all Volumes by Volume Label.tsv"
+  val tsv = read-text-file(fpath.path)
+  tsv.lines.drop(1).map(fn(line) line.split("\t")).flatmap-maybe(fn(l)
+    match l
+      Cons(stgrp, Cons(_, Nil)) -> Just(stgrp.vector.full/slice)
+      _ -> 
+        // println("can't parse " ++ l.show)
+        Nothing
+  ).sort.dedup
+fun pattern/show(pat : vector<maybe<char>>) : string
+  pat.map(fn(x)
+    match x
+      Nothing -> ".."
+      Just(c) -> c.string
+  ).vector/join
+fun main(): _ ()
+  // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector.slice)
+  val labels = parse-storage-groups()
+  labels.zip(compress(labels)).foreach fn((label, compressed))
+    println(label.string ++ "  ->  " ++ compressed.pattern/show)
+  println("Label count: " ++ labels.length.show)
 
 
 // import suffix-array
