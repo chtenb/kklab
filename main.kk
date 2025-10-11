@@ -8,6 +8,7 @@ import vector
 import vslice
 import util
 import list
+import string
 
 // import tpsv
 // fun main()
@@ -23,7 +24,9 @@ fun parse-storage-groups() : io list<vector<char>>
   val tsv = read-text-file(fpath.path)
   tsv.lines.drop(1).map(fn(line) line.split("\t")).flatmap-maybe(fn(l)
     match l
-      Cons(stgrp, Cons(_, Nil)) -> Just(stgrp.vector)
+      Cons(stgrp, Cons(_, Nil)) ->
+        // if stgrp.starts-with("SS").is-just || stgrp.starts-with("SN").is-just then Just(stgrp.vector) else Nothing
+        Just(stgrp.vector)
       _ -> 
         // println("can't parse " ++ l.show)
         Nothing

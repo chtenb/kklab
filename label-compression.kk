@@ -30,7 +30,10 @@ pub fun shortest-uniq-prefix-length(
   val diff-indices = neighbors.map fn(neighbor)
     range/list(0, label.length - 1).index-of fn(i)
       neighbor.at(i) != label.at(i)
-  diff-indices.maximum + 1
+  if diff-indices.minimum >= 0 then
+    diff-indices.maximum + 1
+  else
+    label.length // label is fully contained in other label
 
 pub fun compress-by-supr(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
@@ -59,7 +62,10 @@ pub fun shortest-uniq-postfix-length(
   val diff-indices = neighbors.map fn(neighbor)
     range/list(0, label.length - 1).index-of fn(i)
       neighbor.at(neighbor.length - 1 - i) != label.at(label.length - 1 - i)
-  diff-indices.maximum + 1
+  if diff-indices.minimum >= 0 then
+    diff-indices.maximum + 1
+  else
+    label.length // label is fully contained in other label
 
 pub fun compress-by-supo(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
@@ -137,3 +143,4 @@ pub fun compress(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> stri
   results := compress-by-supr(results)
   results := compress-by-sui(results)
   results.map(fn (c) (c.label, c.pattern))
+
