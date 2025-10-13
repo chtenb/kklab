@@ -27,7 +27,7 @@ pub fun vslice/show-bounds(v: vslice<a>): e string
   "vslice(" ++ v.start.show ++ ", " ++ v.length.show ++ ")"
 
 pub fun vector/slice(v: vector<a>, start: int, len: int): vslice<a>
-  Vslice(v, max(0, min(v.length, start)), max(0, min(v.length, len)))
+  Vslice(v, max(0, min(v.length, start)), max(0, min(v.length - start, len)))
 
 pub fun vector/full/slice(v: vector<a>): vslice<a>
   Vslice(v, 0, v.length)

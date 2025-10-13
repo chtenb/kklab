@@ -18,7 +18,7 @@ pub alias pattern<a> = list<maybe<a>>
 
 pub struct compression<a>(label: vector<a>, compressed: list<vslice<a>>, cost: int)
 
-pub fun uncompressed(labels: list<vector<a>>): list<compression<a>>
+pub fun uncompressed(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string): list<compression<a>>
   labels.map fn(label)
     Compression(label, [label.slice], label.length)
 
@@ -90,7 +90,6 @@ pub fun compress-by-supo(
 
 // SUCi
 
-// FIX: make it prefer wildcards at the end by reversing the search order
 // TODO: you can make this much faster by only comparing with prefix matches
 pub fun first-shortest-uniq-circumfix(
     compression : compression<a>, labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string
@@ -103,7 +102,7 @@ pub fun first-shortest-uniq-circumfix(
   for-dec(label.length - 2, 1) fn(start)
     // Skip the last index, as we don't do postfixes so the last part must be non-empty
     // Only consider len >= 2, because single width wildcards are never optimal
-    for-while(2, label.length - start - 1) fn(len)
+    for-while-dec(label.length - start - 1, 2) fn(len)
       val circum-len = label.length - len
       if circum-len >= shortest-len then
         Just(())
@@ -111,10 +110,12 @@ pub fun first-shortest-uniq-circumfix(
         val pre = label.len/slice(start)
         val post = label.start/slice(start + len)
         val is-uniq = labels.foreach-while fn(other)
-          if other == label || (!other.starts-with(pre) && !other.ends-with(post)) then
-            Nothing
-          else
+          // trace(other.show ++ " starts with " ++ pre.show ++ ": " ++ other.starts-with(pre).show)
+          // trace(other.show ++ " ends with " ++ post.show ++ ": " ++ other.ends-with(post).show)
+          if other != label && other.starts-with(pre) && other.ends-with(post) then
             Just(False)
+          else
+            Nothing
         if is-uniq.default(True) then
           shortest := [pre, post]
           shortest-len := circum-len
@@ -186,9 +187,9 @@ fun vslice/pattern(compression: compression<a>): _ pattern<a>
   
 pub fun compress(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string): _ list<(vector<a>, pattern<a>)>
   var results := uncompressed(labels)
-  // results := compress-by-supo(results)
-  // results := compress-by-supr(results)
+  results := compress-by-supr(results)
+  results := compress-by-supo(results)
   results := compress-by-suci(results)
-  // results := compress-by-sui(results)
-  results.map(fn (c) (c.label, c.pattern))
+  results := compress-by-sui(results)
+  results.sort-by(label).map(fn (c) (c.label, c.pattern))
 

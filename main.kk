@@ -3,6 +3,7 @@ import std/num/int32
 import std/core/char
 import std/os/path
 import std/os/file
+import std/num/float64
 
 import vector
 import vslice
@@ -19,7 +20,7 @@ import string
 
 
 import label-compression
-fun parse-storage-groups() : io list<vector<char>>
+fun parse-labels() : io list<vector<char>>
   val fpath = "C:\\Users\\ChieltenBrinke\\Desktop\\Storage Group for all Volumes by Volume Label.tsv"
   val tsv = read-text-file(fpath.path)
   tsv.lines.drop(1).map(fn(line) line.split("\t")).flatmap-maybe(fn(l)
@@ -39,10 +40,17 @@ fun pattern/show(pat : list<maybe<char>>) : string
   ).join
 fun main(): _ ()
   // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector)
-  val labels = parse-storage-groups()
+  val labels = parse-labels().filter-indexed(fn(i, _) int/is-even(i))
+  var label-length := 0
+  var pattern-length := 0
   compress(labels).foreach fn((label, pattern))
     println(label.vector/string ++ "  ->  " ++ pattern.pattern/show)
+    label-length := label-length + label.length
+    pattern-length := pattern-length + pattern.length
   println("Label count: " ++ labels.length.show)
+  println("Total length: " ++ label-length.show)
+  println("Compressed length: " ++ pattern-length.show)
+  println("Compression ratio: " ++ (label-length.float64 / pattern-length.float64).show)
 
 
 // import suffix-array
