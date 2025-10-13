@@ -22,6 +22,29 @@ fun unsafe-no-exn(f: () -> <exn|e> a, ?kk-file-line: string): e a
 pub fun todo() : a
   panic("todo")
 
+// LOOPING
+
+// Executes `action`  for each decreasing integer from `start` to `end` (including `end` ).
+// If `start < end`  the function returns without any call to `action` .
+pub fun range/for-dec( ^start: int, end : int, action : (int) -> e () ) : e ()
+  fun rep( ^i : int )
+    if i >= end then
+      action(i)
+      rep(pretend-decreasing(i.dec))
+  rep(start)
+
+// Executes `action`  for each decreasing integer between `start`  to `end`  (including `end` ).
+// If `start > end`  the function returns without any call to `action` .
+// If `action` returns `Just`, the iteration is stopped and the result returned
+pub fun range/for-while-dec( start: int, end : int, action : (int) -> e maybe<a> ) : e maybe<a>
+  fun rep( i : int )
+    if i >= end then
+      match action(i)
+        Nothing -> rep(pretend-decreasing(i.dec))
+        Just(x) -> Just(x)
+    else Nothing
+  rep(start)
+
   
 // BRANCHING
 pub fun when(condition : bool, action : () -> e ()) : e ()

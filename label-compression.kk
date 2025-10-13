@@ -14,13 +14,13 @@ import stream
 import vslice
 
 // Nothing indicates a multilength wildcard, there should be at most one consecutive wildcard
-pub alias pattern<a> = vector<maybe<a>>
+pub alias pattern<a> = list<maybe<a>>
 
-pub struct compression<a>(label: vector<a>, compressed: vslice<a>, cost: int)
+pub struct compression<a>(label: vector<a>, compressed: list<vslice<a>>, cost: int)
 
 pub fun uncompressed(labels: list<vector<a>>): list<compression<a>>
   labels.map fn(label)
-    Compression(label, label.slice, label.length)
+    Compression(label, [label.slice], label.length)
 
 // SUPR
 
@@ -50,7 +50,7 @@ pub fun compress-by-supr(
     val shortest-len = shortest-uniq-prefix-length(compression.label, neighbors)
     val new-cost = shortest-len + 1 // Add one for wildcard
     if new-cost < compression.cost then
-      compression(compressed = compression.label.len/slice(shortest-len), cost = new-cost)
+      compression(compressed = [compression.label.len/slice(shortest-len)], cost = new-cost)
     else
       compression
 
@@ -83,22 +83,70 @@ pub fun compress-by-supo(
     val shortest-len = shortest-uniq-postfix-length(compression.label, neighbors)
     val new-cost = shortest-len + 1 // Add one for wildcard
     if new-cost < compression.cost then
-      val new-compressed = compression.label.start/slice(compression.label.length - shortest-len)
+      val new-compressed = [compression.label.start/slice(compression.label.length - shortest-len)]
       compression(compressed = new-compressed, cost = new-cost)
     else
       compression
 
+// SUCi
+
+// FIX: make it prefer wildcards at the end by reversing the search order
+// TODO: you can make this much faster by only comparing with prefix matches
+pub fun first-shortest-uniq-circumfix(
+    compression : compression<a>, labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string
+  ): _ compression<a>
+  val label = compression.label
+  var shortest := [label.slice]
+  var shortest-len := label.length
+  // We encode the circum slice as a normal slice, but then interpret it as its complement
+  // Skip the first index, as we don't do postfixes so the first part must be non-empty
+  for-dec(label.length - 2, 1) fn(start)
+    // Skip the last index, as we don't do postfixes so the last part must be non-empty
+    // Only consider len >= 2, because single width wildcards are never optimal
+    for-while(2, label.length - start - 1) fn(len)
+      val circum-len = label.length - len
+      if circum-len >= shortest-len then
+        Just(())
+      else
+        val pre = label.len/slice(start)
+        val post = label.start/slice(start + len)
+        val is-uniq = labels.foreach-while fn(other)
+          if other == label || (!other.starts-with(pre) && !other.ends-with(post)) then
+            Nothing
+          else
+            Just(False)
+        if is-uniq.default(True) then
+          shortest := [pre, post]
+          shortest-len := circum-len
+          Just(())
+        else
+          Nothing
+    ()
+  val new-cost = shortest-len + 1 // Add 1 to the cost because is 1 wildcard
+  if new-cost < compression.cost then
+    compression(compressed = shortest, cost = new-cost)
+  else
+    compression
+
+// Pass the labels with the scores so far, for pruning reasons
+pub fun compress-by-suci(
+    labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
+  ): _ list<compression<a>>
+  labels.map fn(compression)
+    first-shortest-uniq-circumfix(compression, labels.map(label))
+
 // SUI
 
-// TODO: exclude pre and post fixes as small optimization
 pub fun first-shortest-uniq-infix(
     compression : compression<a>, labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string
   ): _ compression<a>
   val label = compression.label
-  var shortest := label.slice
+  var shortest := [label.slice]
   var shortest-len := label.length
-  for(label.length - 2) fn(start)
-    for-while(1, label.length - start) fn(len)
+  // Skip the first two starting indices, as we don't do prefixes, and a one-length wildcard is never optimal
+  for(2, label.length - 2) fn(start)
+    // Skip the last two ending indices, as we don't do postfixes, and a one-length wildcard is never optimal
+    for-while-dec(1, label.length - start - 2) fn(len)
       if len >= shortest-len then
         Just(())
       else
@@ -109,7 +157,7 @@ pub fun first-shortest-uniq-infix(
           else
             Just(False)
         if is-uniq.default(True) then
-          shortest := substr
+          shortest := [substr]
           shortest-len := len
           Just(())
         else
@@ -128,19 +176,19 @@ pub fun compress-by-sui(
   labels.map fn(compression)
     first-shortest-uniq-infix(compression, labels.map(label))
 
-
 fun vslice/pattern(compression: compression<a>): _ pattern<a>
-  var pattern := compression.compressed.map(Just)
-  when (compression.compressed.start > 0)
-    pattern := [Nothing].vector.append(pattern)
-  when (compression.compressed.end < compression.label.length)
-    pattern := pattern.append([Nothing].vector)
+  var pattern := compression.compressed.map(fn(sub) sub.map(Just).list).joinsep([Nothing])
+  when (compression.compressed.head.unjust.start > 0)
+    pattern := [Nothing].append(pattern)
+  when (compression.compressed.last.unjust.end < compression.label.length)
+    pattern := pattern.append([Nothing])
   pattern
   
 pub fun compress(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string): _ list<(vector<a>, pattern<a>)>
   var results := uncompressed(labels)
-  results := compress-by-supo(results)
-  results := compress-by-supr(results)
-  results := compress-by-sui(results)
+  // results := compress-by-supo(results)
+  // results := compress-by-supr(results)
+  results := compress-by-suci(results)
+  // results := compress-by-sui(results)
   results.map(fn (c) (c.label, c.pattern))
 

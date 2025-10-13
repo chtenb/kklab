@@ -12,7 +12,6 @@ pub fun remove-at(l : list<a>, index : int) : list<a>
       Cons(x, xs) -> if i == 0 then rec(xs, i - 1) else Cons(x, rec(xs, i - 1))
   if index < 0 then l else rec(l, index)
 
-
 pub fun range/list(n: int): list<int>
   range/list(0, n - 1)
 
@@ -37,3 +36,11 @@ pub fun dedup(l : list<a>, ?(==) : (a,a) -> bool) : list<a>
     val duplicate = prev-elm == Just(elm)
     prev-elm := Just(elm)
     !duplicate
+
+// Concatenate all lists in a list, separated by a sep
+fun joinsep( xs : list<list<a>>, sep : list<a>) : list<a>
+  match xs
+    Nil -> []
+    Cons(x,Nil) -> x
+    Cons(x,xxs) -> x ++ sep ++ xxs.joinsep(sep)
+

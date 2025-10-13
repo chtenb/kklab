@@ -120,6 +120,14 @@ pub fun vslice/foreach-indexed(v: vslice<a>, action: (int, a) -> e ()): e ()
         action(i, x)
         Loop(xs, i + 1)
 
+// Implementation without loop
+// fun vslice/foreach( v: vslice<a>, action: a -> e () ): e ()
+//   match v.next
+//     Nothing -> ()
+//     Just((x, xs)) -> 
+//       action(x)
+//       foreach(pretend-decreasing(xs), action)
+
 pub fun vslice/foreach(v: vslice<a>, action: a -> e ()): e ()
   v.foreach-indexed fn(_, x) action(x)
 
@@ -138,12 +146,29 @@ pub fun vslice/map-indexed(v: vslice<a>, f: (int, a) -> e b): e vector<b>
     unsafe-assign(w, i.ssize_t, f(i, x))
   w
 
+pub fun vector/starts-with(haystack: vector<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
+  haystack.slice.starts-with(needle)
+
 pub fun vslice/starts-with(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
   if needle.length > haystack.length then
     False
   else
     val result = for-while(needle.length) fn(i)
       if needle.at(i) == haystack.at(i) then
+        Nothing
+      else
+        Just(False)
+    result.default(True)
+
+pub fun vector/ends-with(haystack: vector<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
+  haystack.slice.ends-with(needle)
+
+pub fun vslice/ends-with(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
+  if needle.length > haystack.length then
+    False
+  else
+    val result = for-while(needle.length) fn(i)
+      if needle.at(needle.length - 1 - i) == haystack.at(haystack.length - 1 - i) then
         Nothing
       else
         Just(False)
@@ -160,10 +185,3 @@ pub fun vslice/contains(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> 
       Nothing
   result.default(False)
 
-// Implementation without loop
-// fun vslice/foreach( v: vslice<a>, action: a -> e () ): e ()
-//   match v.next
-//     Nothing -> ()
-//     Just((x, xs)) -> 
-//       action(x)
-//       foreach(pretend-decreasing(xs), action)

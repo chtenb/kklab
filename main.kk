@@ -31,12 +31,12 @@ fun parse-storage-groups() : io list<vector<char>>
         // println("can't parse " ++ l.show)
         Nothing
   ).sort.dedup
-fun pattern/show(pat : vector<maybe<char>>) : string
+fun pattern/show(pat : list<maybe<char>>) : string
   pat.map(fn(x)
     match x
       Nothing -> ".."
       Just(c) -> c.string
-  ).vector/join
+  ).join
 fun main(): _ ()
   // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector)
   val labels = parse-storage-groups()

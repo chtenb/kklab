@@ -1,2 +1,4 @@
-pub fun main()
-  println("…")
+
+pub fun foo()
+  val postfi = "hi"
+  Nothing
