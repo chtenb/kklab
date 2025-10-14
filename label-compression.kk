@@ -38,6 +38,7 @@ pub fun shortest-uniq-prefix-length(
 pub fun compress-by-supr(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
   ): _ list<compression<a>>
+  trace("SUPR")
   val sorted = labels.sort-by(label)
   val sorted-vec = sorted.vector
   val label-count = labels.length
@@ -70,6 +71,7 @@ pub fun shortest-uniq-postfix-length(
 pub fun compress-by-supo(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
   ): _ list<compression<a>>
+  trace("SUPO")
   val x/cmp = vector/lexi/cmp-reverse
   val sorted = labels.sort-by(label)
   val sorted-vec = sorted.vector
@@ -133,6 +135,7 @@ pub fun first-shortest-uniq-circumfix(
 pub fun compress-by-suci(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
   ): _ list<compression<a>>
+  trace("SUCi")
   labels.map fn(compression)
     first-shortest-uniq-circumfix(compression, labels.map(label))
 
@@ -143,18 +146,20 @@ pub fun first-shortest-uniq-infix(
   ): _ compression<a>
   val label = compression.label
   var shortest := [label.slice]
-  var shortest-len := label.length
+  // We can initialize with a tight bound based on the cost of previous compression results
+  // Subtract 2 because our length results will bear a penalty of two for the wildcards
+  var shortest-len := compression.cost - 2
   // Skip the first two and last two starting indices, as we don't do prefixes, and a one-length wildcard is never optimal
-  trace("\nFor label " ++ label.show)
+  // trace("\nFor label " ++ label.show)
   for(2, label.length - 3) fn(start : int)
-    trace("From start " ++ start.show)
+    // trace("From start " ++ start.show)
     // Skip the last two ending indices, as we don't do postfixes, and a one-length wildcard is never optimal
     for-while(1, min(label.length - 2 - start, shortest-len - 1)) fn(len)
       val substr = label.slice(start, len)
-      trace("Checking " ++ substr.show)
+      // trace("Checking " ++ substr.show)
       assert("substr should not be empty", !substr.is-empty)
       val is-uniq = labels.foreach-while fn(other)
-        trace("Against other " ++ other.show)
+        // trace("Against other " ++ other.show)
         // Contains must only check non-prefix and non-postfix substrings
         if other == label || !other.slice(1, other.length - 2).contains(substr) then
           Nothing
@@ -177,6 +182,7 @@ pub fun first-shortest-uniq-infix(
 pub fun compress-by-sui(
     labels: list<compression<a>>, ?cmp: (a,a) -> order, ?show: a -> string
   ): _ list<compression<a>>
+  trace("SUI")
   labels.map fn(compression)
     first-shortest-uniq-infix(compression, labels.map(label))
 
@@ -190,8 +196,8 @@ fun vslice/pattern(compression: compression<a>): _ pattern<a>
   
 pub fun compress(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string): _ list<(vector<a>, pattern<a>)>
   var results := uncompressed(labels)
-  // results := compress-by-supr(results)
-  // results := compress-by-supo(results)
+  results := compress-by-supr(results)
+  results := compress-by-supo(results)
   // results := compress-by-suci(results)
   results := compress-by-sui(results)
   results.sort-by(label).map(fn (c) (c.label, c.pattern))

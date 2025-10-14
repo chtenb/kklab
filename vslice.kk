@@ -180,7 +180,7 @@ pub fun vector/contains(haystack: vector<a>, needle: vslice<a>, ?(==): (a,a) -> 
 pub fun vslice/contains(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
   val result = for-while(haystack.length - needle.length + 1) fn(i)
     if haystack.start/slice(i).starts-with(needle) then
-      trace(haystack.show ++ " contains " ++ needle.show)
+      // trace(haystack.show ++ " contains " ++ needle.show)
       Just(True)
     else
       Nothing
