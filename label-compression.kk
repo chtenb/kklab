@@ -144,25 +144,28 @@ pub fun first-shortest-uniq-infix(
   val label = compression.label
   var shortest := [label.slice]
   var shortest-len := label.length
-  // Skip the first two starting indices, as we don't do prefixes, and a one-length wildcard is never optimal
-  for(2, label.length - 2) fn(start)
+  // Skip the first two and last two starting indices, as we don't do prefixes, and a one-length wildcard is never optimal
+  trace("\nFor label " ++ label.show)
+  for(2, label.length - 3) fn(start : int)
+    trace("From start " ++ start.show)
     // Skip the last two ending indices, as we don't do postfixes, and a one-length wildcard is never optimal
-    for-while-dec(1, label.length - start - 2) fn(len)
-      if len >= shortest-len then
+    for-while(1, min(label.length - 2 - start, shortest-len - 1)) fn(len)
+      val substr = label.slice(start, len)
+      trace("Checking " ++ substr.show)
+      assert("substr should not be empty", !substr.is-empty)
+      val is-uniq = labels.foreach-while fn(other)
+        trace("Against other " ++ other.show)
+        // Contains must only check non-prefix and non-postfix substrings
+        if other == label || !other.slice(1, other.length - 2).contains(substr) then
+          Nothing
+        else
+          Just(False)
+      if is-uniq.default(True) then
+        shortest := [substr]
+        shortest-len := len
         Just(())
       else
-        val substr = label.slice(start, len)
-        val is-uniq = labels.foreach-while fn(other)
-          if other == label || !other.contains(substr) then
-            Nothing
-          else
-            Just(False)
-        if is-uniq.default(True) then
-          shortest := [substr]
-          shortest-len := len
-          Just(())
-        else
-          Nothing
+        Nothing
     ()
   val new-cost = shortest-len + 2 // Add two to the cost because there are two wildcards
   if new-cost < compression.cost then
@@ -187,9 +190,9 @@ fun vslice/pattern(compression: compression<a>): _ pattern<a>
   
 pub fun compress(labels: list<vector<a>>, ?cmp: (a,a) -> order, ?show: a -> string): _ list<(vector<a>, pattern<a>)>
   var results := uncompressed(labels)
-  results := compress-by-supr(results)
-  results := compress-by-supo(results)
-  results := compress-by-suci(results)
+  // results := compress-by-supr(results)
+  // results := compress-by-supo(results)
+  // results := compress-by-suci(results)
   results := compress-by-sui(results)
   results.sort-by(label).map(fn (c) (c.label, c.pattern))
 

@@ -25,12 +25,8 @@ fun parse-labels() : io list<vector<char>>
   val tsv = read-text-file(fpath.path)
   tsv.lines.drop(1).map(fn(line) line.split("\t")).flatmap-maybe(fn(l)
     match l
-      Cons(stgrp, Cons(_, Nil)) ->
-        // if stgrp.starts-with("SS").is-just || stgrp.starts-with("SN").is-just then Just(stgrp.vector) else Nothing
-        Just(stgrp.vector)
-      _ -> 
-        // println("can't parse " ++ l.show)
-        Nothing
+      Cons(stgrp, Cons(volser, Nil)) -> Just(stgrp.vector)
+      _ ->  Nothing
   ).sort.dedup
 fun pattern/show(pat : list<maybe<char>>) : string
   pat.map(fn(x)
@@ -40,7 +36,8 @@ fun pattern/show(pat : list<maybe<char>>) : string
   ).join
 fun main(): _ ()
   // val labels = ["abcaa", "abdbb"].map(fn(s) s.vector)
-  val labels = parse-labels().filter-indexed(fn(i, _) int/is-even(i))
+  val labels = parse-labels() .filter-indexed(fn(i, _) i % 10 == 0)
+  println("Label count: " ++ labels.length.show)
   var label-length := 0
   var pattern-length := 0
   compress(labels).foreach fn((label, pattern))

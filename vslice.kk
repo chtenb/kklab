@@ -40,10 +40,10 @@ pub fun vector/len/slice(v: vector<a>, len: int): vslice<a>
 
 // TODO: is there a default argument qualifier? Like arg/len?
 pub fun vslice/slice(v: vslice<a>, start: int, len: int): vslice<a>
-  Vslice(v.parent, max(0, min(v.length, start)), max(0, min(v.length, len)))
+  Vslice(v.parent, max(0, min(v.length, v.vslice/start + start)), max(0, min(v.length, len)))
 
 pub fun vslice/start/slice(v: vslice<a>, start: int): vslice<a>
-  v.slice(start, v.length)
+  v.slice(start, v.length) // Will be clamped by ctor
 
 pub fun vslice/len/slice(v: vslice<a>, len: int): vslice<a>
   v.slice(0, len)
@@ -180,6 +180,7 @@ pub fun vector/contains(haystack: vector<a>, needle: vslice<a>, ?(==): (a,a) -> 
 pub fun vslice/contains(haystack: vslice<a>, needle: vslice<a>, ?(==): (a,a) -> bool, ?show: a -> string): bool
   val result = for-while(haystack.length - needle.length + 1) fn(i)
     if haystack.start/slice(i).starts-with(needle) then
+      trace(haystack.show ++ " contains " ++ needle.show)
       Just(True)
     else
       Nothing
